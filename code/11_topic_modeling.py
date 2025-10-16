@@ -10,15 +10,15 @@ import matplotlib.pyplot as plt
 from wordcloud import WordCloud
 import platform
 
-# ================================
-# ⚙️ 폰트 설정 (macOS 한글 깨짐 방지)
-# ================================
-if platform.system() == 'Darwin':  # macOS
-    plt.rc('font', family='AppleGothic')
-else:  # Windows / Linux 대비
-    plt.rc('font', family='Malgun Gothic')
+# ---------- 1. 폰트 설정 ----------
+if platform.system() == "Windows":
+    font_path = "C:/Windows/Fonts/malgun.ttf"  # ✅ Windows용 한글 폰트
+elif platform.system() == "Darwin":
+    font_path = "/System/Library/Fonts/AppleSDGothicNeo.ttc"  # ✅ macOS
+else:
+    font_path = "/usr/share/fonts/truetype/nanum/NanumGothic.ttf"  # ✅ Linux
 
-plt.rcParams['axes.unicode_minus'] = False  # 마이너스 깨짐 방지
+plt.rcParams["axes.unicode_minus"] = False
 
 okt = Okt()
 
@@ -100,12 +100,12 @@ def lda_topic_modeling(file_path, title, num_topics=5, num_words=10):
     for i, topic in enumerate(topics):
         print(f"🟢 토픽 {i+1}: {topic[1]}")
 
-    # WordCloud 시각화
+    # ---------- ✅ WordCloud 시각화 ----------
     for i in range(num_topics):
         plt.figure(figsize=(6, 6))
         topic_words = dict(lda_model.show_topic(i, topn=30))
         wc = WordCloud(
-            font_path='/System/Library/Fonts/AppleSDGothicNeo.ttc',
+            font_path=font_path,  # ✅ 자동 설정된 폰트 사용
             background_color='white',
             colormap='tab10',
             width=800, height=800
@@ -115,7 +115,7 @@ def lda_topic_modeling(file_path, title, num_topics=5, num_words=10):
         plt.title(f"{title} - 토픽 {i+1}", fontsize=14)
         plt.tight_layout()
         plt.savefig(f"../datas/{title}_topic{i+1}.png", dpi=300)
-        plt.show()
+        plt.close()  # 🔹 메모리 절약
 
     # CSV 저장
     topic_data = []

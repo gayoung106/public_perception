@@ -10,13 +10,12 @@ import seaborn as sns
 import os
 import platform
 
-# ================================
-# ⚙️ 폰트 설정 (macOS 한글 깨짐 방지)
-# ================================
-if platform.system() == 'Darwin':  # macOS
-    plt.rc('font', family='AppleGothic')
-else:  # Windows / Linux 대비
-    plt.rc('font', family='Malgun Gothic')
+if platform.system() == "Windows":
+    font_path = "C:/Windows/Fonts/malgun.ttf"  # ✅ Windows용 한글 폰트
+elif platform.system() == "Darwin":
+    font_path = "/System/Library/Fonts/AppleSDGothicNeo.ttc"  # ✅ macOS
+else:
+    font_path = "/usr/share/fonts/truetype/nanum/NanumGothic.ttf" 
 
 plt.rcParams['axes.unicode_minus'] = False  # 마이너스 깨짐 방지
 
@@ -63,7 +62,7 @@ topics_2020_2025 = (
 def make_wordcloud(words, title):
     text = " ".join(words)
     wc = WordCloud(
-        font_path="/System/Library/Fonts/AppleSDGothicNeo.ttc",
+        font_path=font_path,
         width=600, height=400,
         background_color="white", colormap="viridis"
     ).generate(text)

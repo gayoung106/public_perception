@@ -45,7 +45,7 @@ EXCLUDE_WORDS = [
 def clean_text(text):
     text = re.sub(r"[^가-힣\s]", " ", str(text))
     nouns = okt.nouns(text)
-    nouns = [n for n in nouns if len(n) > 1 and n not in stopwords]
+    nouns = [n for n in nouns if len(n) > 1 and n not in EXCLUDE_WORDS]
     return " ".join(nouns)
 
 for period in ["2015_2019", "2020_2025"]:

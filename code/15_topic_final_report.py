@@ -7,7 +7,7 @@ import pandas as pd
 from fpdf import FPDF
 import os
 
-# ✅ 한글 폰트 경로 설정 (Apple의 경우 기본 폰트 사용 가능)
+#  한글 폰트 경로 설정 (Apple의 경우 기본 폰트 사용 가능)
 FONT_PATH = "/System/Library/Fonts/AppleSDGothicNeo.ttc"  # macOS 기준
 
 class PDF(FPDF):
@@ -20,7 +20,7 @@ class PDF(FPDF):
 pdf = PDF()
 pdf.set_auto_page_break(auto=True, margin=15)
 
-# ✅ 한글 폰트 등록
+#  한글 폰트 등록
 pdf.add_font("AppleGothic", "", FONT_PATH, uni=True)
 pdf.add_font("AppleGothic", "B", FONT_PATH, uni=True)
 pdf.set_font("AppleGothic", size=12)
@@ -63,4 +63,4 @@ for img in image_files:
 # 🔹 5. PDF 저장
 output_path = "../datas/final_topic_report.pdf"
 pdf.output(output_path)
-print("✅ 논문용 통합 리포트 저장 완료:", output_path)
+print(" 논문용 통합 리포트 저장 완료:", output_path)

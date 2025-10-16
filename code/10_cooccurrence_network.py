@@ -12,7 +12,7 @@ from konlpy.tag import Okt
 import platform
 
 # ================================
-# ⚙️ 폰트 설정 (macOS 한글 깨짐 방지)
+#  폰트 설정 (macOS 한글 깨짐 방지)
 # ================================
 if platform.system() == 'Darwin':  # macOS
     plt.rc('font', family='AppleGothic')
@@ -75,7 +75,7 @@ def extract_nouns(text):
 # 🔹 공출현 네트워크 생성 함수
 # ------------------------------------------------------------
 def build_cooccurrence_network(file_path, title, output_name):
-    print(f"▶ {title} 데이터 처리 중...")
+    print(f" {title} 데이터 처리 중...")
 
     df = pd.read_csv(file_path)
     df = df.dropna(subset=['clean_text'])
@@ -121,7 +121,7 @@ def build_cooccurrence_network(file_path, title, output_name):
     edges_df.to_csv(output_name.replace('.png', '_edges.csv'), index=False, encoding='utf-8-sig')
     central_df.to_csv(output_name.replace('.png', '_centrality.csv'), index=False, encoding='utf-8-sig')
 
-    print(f"✅ 완료: {title} ({len(G.nodes())}개 단어, {len(G.edges())}개 연결)")
+    print(f"완료: {title} ({len(G.nodes())}개 단어, {len(G.edges())}개 연결)")
     print(f"🔹 중심 단어 상위 10개:")
     print(central_df.head(10))
     print()

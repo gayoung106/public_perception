@@ -12,11 +12,11 @@ import platform
 
 # ---------- 1. 폰트 설정 ----------
 if platform.system() == "Windows":
-    font_path = "C:/Windows/Fonts/malgun.ttf"  # ✅ Windows용 한글 폰트
+    font_path = "C:/Windows/Fonts/malgun.ttf"  #  Windows용 한글 폰트
 elif platform.system() == "Darwin":
-    font_path = "/System/Library/Fonts/AppleSDGothicNeo.ttc"  # ✅ macOS
+    font_path = "/System/Library/Fonts/AppleSDGothicNeo.ttc"  #  macOS
 else:
-    font_path = "/usr/share/fonts/truetype/nanum/NanumGothic.ttf"  # ✅ Linux
+    font_path = "/usr/share/fonts/truetype/nanum/NanumGothic.ttf"  # Linux
 
 plt.rcParams["axes.unicode_minus"] = False
 
@@ -98,14 +98,14 @@ def lda_topic_modeling(file_path, title, num_topics=5, num_words=10):
     topics = lda_model.print_topics(num_words=num_words)
     print(f"\n📘 [{title}] 토픽별 주요 단어\n")
     for i, topic in enumerate(topics):
-        print(f"🟢 토픽 {i+1}: {topic[1]}")
+        print(f" 토픽 {i+1}: {topic[1]}")
 
-    # ---------- ✅ WordCloud 시각화 ----------
+    # ----------  WordCloud 시각화 ----------
     for i in range(num_topics):
         plt.figure(figsize=(6, 6))
         topic_words = dict(lda_model.show_topic(i, topn=30))
         wc = WordCloud(
-            font_path=font_path,  # ✅ 자동 설정된 폰트 사용
+            font_path=font_path,  #  자동 설정된 폰트 사용
             background_color='white',
             colormap='tab10',
             width=800, height=800
@@ -124,7 +124,7 @@ def lda_topic_modeling(file_path, title, num_topics=5, num_words=10):
         topic_data.append({'시기': title, '토픽': f'Topic {i+1}', '단어': ', '.join(words)})
 
     pd.DataFrame(topic_data).to_csv(f"../datas/{title}_topics.csv", index=False, encoding='utf-8-sig')
-    print(f"✅ 완료: {title} ({num_topics}개 토픽 저장됨)\n")
+    print(f" 완료: {title} ({num_topics}개 토픽 저장됨)\n")
 
 # ------------------------------------------------------------
 # 🔹 실행 구간

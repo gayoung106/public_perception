@@ -10,7 +10,7 @@ from konlpy.tag import Okt
 import platform
 
 # ================================
-# ⚙️ 폰트 설정 (macOS 한글 깨짐 방지)
+#  폰트 설정 (macOS 한글 깨짐 방지)
 # ================================
 if platform.system() == 'Darwin':  # macOS
     plt.rc('font', family='AppleGothic')
@@ -69,7 +69,7 @@ def extract_nouns(text):
 # 🔹 CSV 파일 처리 함수
 def process_csv(file_path, output_name):
     df = pd.read_csv(file_path)
-    text = ' '.join(df['clean_text'].astype(str))  # ✅ '본문' 대신 'clean_text'
+    text = ' '.join(df['clean_text'].astype(str))  #  '본문' 대신 'clean_text'
     words = extract_nouns(text)
     counter = Counter(words)
     result = pd.DataFrame(counter.most_common(50), columns=['단어', '빈도'])

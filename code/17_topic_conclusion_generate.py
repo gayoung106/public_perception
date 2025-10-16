@@ -34,4 +34,4 @@ conclusion_text = """
 with open("../datas/topic_conclusion.txt", "w", encoding="utf-8") as f:
     f.write(conclusion_text)
 
-print("✅ 논문 결론 및 시사점 자동 생성 완료: ../datas/topic_conclusion.txt")
+print(" 논문 결론 및 시사점 자동 생성 완료: ../datas/topic_conclusion.txt")

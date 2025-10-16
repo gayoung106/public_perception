@@ -34,4 +34,4 @@ summary_text = """
 with open("../datas/topic_discussion.txt", "w", encoding="utf-8") as f:
     f.write(summary_text)
 
-print("✅ 논문 Discussion 자동 생성 완료: ../datas/topic_discussion.txt")
+print(" 논문 Discussion 자동 생성 완료: ../datas/topic_discussion.txt")

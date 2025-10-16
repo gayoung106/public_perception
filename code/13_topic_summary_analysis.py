@@ -7,7 +7,7 @@ import pandas as pd
 import platform
 
 # ================================
-# ⚙️ 폰트 설정 (macOS 한글 깨짐 방지)
+#  폰트 설정 (macOS 한글 깨짐 방지)
 # ================================
 if platform.system() == 'Darwin':  # macOS
     plt.rc('font', family='AppleGothic')
@@ -22,7 +22,7 @@ plt.rcParams['axes.unicode_minus'] = False  # 마이너스 깨짐 방지
 file_path = "../datas/topic_summary_table.csv"
 
 df = pd.read_csv(file_path)
-print("✅ 불러온 데이터:")
+print("불러온 데이터:")
 print(df.head())
 
 # ---------------------------------------------
@@ -47,7 +47,7 @@ for _, row in df.iterrows():
 
 trend_df = pd.DataFrame(analysis)
 trend_df.to_csv("../datas/topic_keyword_change_summary.csv", index=False, encoding="utf-8-sig")
-print("\n✅ 키워드 변화 요약 저장 완료: topic_keyword_change_summary.csv")
+print(" 키워드 변화 요약 저장 완료: topic_keyword_change_summary.csv")
 
 # ---------------------------------------------
 # 🔹 3. 자동 요약문 생성
@@ -67,7 +67,7 @@ for _, row in trend_df.iterrows():
 """
     summaries.append(summary)
 
-print("\n📘 [시기별 토픽 변화 요약]")
+print(" [시기별 토픽 변화 요약]")
 print("\n".join(summaries))
 
 # ---------------------------------------------
@@ -83,6 +83,6 @@ for _, row in trend_df.iterrows():
 overall_new = list(all_new - all_old)
 overall_old = list(all_old - all_new)
 
-print("\n📈 [전반적 변화 경향]")
+print(" [전반적 변화 경향]")
 print(f"- 신규 등장 핵심어: {', '.join(overall_new[:20])}")
 print(f"- 감소/소멸된 핵심어: {', '.join(overall_old[:20])}")

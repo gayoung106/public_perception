@@ -9,7 +9,7 @@ import pandas as pd
 file_path = "../datas/topic_keyword_change_summary.csv"
 df = pd.read_csv(file_path)
 
-print("✅ 불러온 데이터:")
+print(" 불러온 데이터:")
 print(df.head(), "\n")
 
 # 🔹 2. 자동 문장 생성
@@ -43,9 +43,9 @@ output_path = "../datas/topic_narrative_summary.txt"
 with open(output_path, "w", encoding="utf-8") as f:
     f.write("\n\n".join(paragraphs))
 
-print("✅ 논문용 요약문 저장 완료:", output_path)
+print(" 논문용 요약문 저장 완료:", output_path)
 
 # 🔹 4. 콘솔 미리보기
-print("\n📘 [논문용 자동 요약 미리보기]\n")
+print(" [논문용 자동 요약 미리보기]\n")
 for p in paragraphs:
     print(p, "\n")

@@ -8,7 +8,7 @@ from matplotlib import font_manager, rc
 import platform
 
 # ==========================
-# ✅ 한글 폰트 설정
+# 한글 폰트 설정
 # ==========================
 if platform.system() == 'Windows':
     font_path = "C:/Windows/Fonts/malgun.ttf"  # 맑은 고딕
@@ -22,7 +22,7 @@ rc('font', family=font_name)
 plt.rcParams['axes.unicode_minus'] = False  # 마이너스 깨짐 방지
 
 # ===============================
-# 1️⃣ 데이터 병합
+# 1️ 데이터 병합
 # ===============================
 files = [
     "../datas/public_perception_2015_2019.csv",
@@ -39,13 +39,13 @@ for file in files:
             df_temp["period"] = "2020–2025"
         dfs.append(df_temp)
     else:
-        print(f"⚠️ 파일 없음: {file}")
+        print(f" 파일 없음: {file}")
 
 df = pd.concat(dfs, ignore_index=True)
-print(f"✅ 데이터 병합 완료! 총 {len(df)}건 기사 로드됨")
+print(f" 데이터 병합 완료! 총 {len(df)}건 기사 로드됨")
 
 # ===============================
-# 2️⃣ 본문 컬럼 자동 탐색
+# 2️ 본문 컬럼 자동 탐색
 # ===============================
 content_col_candidates = ["content", "본문", "summary", "요약", "내용", "text"]
 available_cols = df.columns.tolist()
@@ -59,10 +59,10 @@ for col in content_col_candidates:
 if not content_col:
     raise KeyError(f"⚠️ 본문에 해당하는 컬럼을 찾을 수 없습니다. 현재 컬럼: {available_cols}")
 
-print(f"📰 본문 컬럼 사용: '{content_col}'")
+print(f" 본문 컬럼 사용: '{content_col}'")
 
 # ===============================
-# 3️⃣ 형태소 분석 (명사 추출)
+# 3️ 형태소 분석 (명사 추출)
 # ===============================
 okt = Okt()
 
@@ -109,7 +109,7 @@ def extract_nouns(text):
 df["nouns"] = df[content_col].apply(extract_nouns)
 
 # ===============================
-# 4️⃣ 시기별 단어 빈도 계산
+# 4️ 시기별 단어 빈도 계산
 # ===============================
 word_counts = {}
 for period in ["2015–2019", "2020–2025"]:
@@ -118,7 +118,7 @@ for period in ["2015–2019", "2020–2025"]:
     word_counts[period] = pd.DataFrame(freq, columns=["단어", "빈도"])
 
 # ===============================
-# 5️⃣ 시각화
+# 5️ 시각화
 # ===============================
 plt.figure(figsize=(10, 6))
 sns.barplot(
@@ -138,11 +138,11 @@ output_path = "../datas/keyword_trend_compare.png"
 plt.savefig(output_path, dpi=300)
 plt.show()
 
-print("✅ 시기별 주요 키워드 비교 완료!")
-print(f"📊 결과 저장: {output_path}")
+print(" 시기별 주요 키워드 비교 완료!")
+print(f" 결과 저장: {output_path}")
 
 # ===============================
-# 6️⃣ 결과 요약 CSV 저장
+# 6️ 결과 요약 CSV 저장
 # ===============================
 combined_df = pd.concat([
     word_counts["2015–2019"].rename(columns={"빈도": "2015–2019"}),
@@ -150,4 +150,4 @@ combined_df = pd.concat([
 ], axis=1)
 
 combined_df.to_csv("../datas/period_keyword_summary.csv", index=False, encoding="utf-8-sig")
-print("✅ 시기별 키워드 요약 저장 완료: period_keyword_summary.csv")
+print(" 시기별 키워드 요약 저장 완료: period_keyword_summary.csv")

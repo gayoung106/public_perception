@@ -11,9 +11,9 @@ import os
 import platform
 
 if platform.system() == "Windows":
-    font_path = "C:/Windows/Fonts/malgun.ttf"  # ✅ Windows용 한글 폰트
+    font_path = "C:/Windows/Fonts/malgun.ttf"  #  Windows용 한글 폰트
 elif platform.system() == "Darwin":
-    font_path = "/System/Library/Fonts/AppleSDGothicNeo.ttc"  # ✅ macOS
+    font_path = "/System/Library/Fonts/AppleSDGothicNeo.ttc"  #  macOS
 else:
     font_path = "/usr/share/fonts/truetype/nanum/NanumGothic.ttf" 
 
@@ -38,7 +38,7 @@ if not os.path.exists(file_2015) or not os.path.exists(file_2020):
 df_2015 = pd.read_csv(file_2015)
 df_2020 = pd.read_csv(file_2020)
 
-print("✅ 파일 불러오기 완료")
+print(" 파일 불러오기 완료")
 print(f"2015–2019 shape: {df_2015.shape}, 2020–2025 shape: {df_2020.shape}")
 
 # ------------------------------------------------------
@@ -74,7 +74,7 @@ def make_wordcloud(words, title):
     plt.tight_layout()
     plt.show()
 
-print("\n📊 [Step 1] 시기별 워드클라우드 생성 중...")
+print(" [Step 1] 시기별 워드클라우드 생성 중...")
 
 for i, words in topics_2015_2019.items():
     make_wordcloud(words, f"2015–2019 토픽 {i}")
@@ -85,7 +85,7 @@ for i, words in topics_2020_2025.items():
 # ------------------------------------------------------
 # 🔹 4. 키워드 빈도 비교
 # ------------------------------------------------------
-print("\n📊 [Step 2] 시기별 토픽 키워드 변화율 계산 중...")
+print(" [Step 2] 시기별 토픽 키워드 변화율 계산 중...")
 
 flat_2015 = [w for topic in topics_2015_2019.values() for w in topic]
 flat_2020 = [w for topic in topics_2020_2025.values() for w in topic]
@@ -104,7 +104,7 @@ top_change = trend_df.sort_values("변화율(%)", ascending=False).head(10)
 # ------------------------------------------------------
 plt.figure(figsize=(8, 5))
 sns.barplot(y="단어", x="변화율(%)", data=top_change, palette="crest")
-plt.title("📈 공직 담론 주요 키워드 변화 (2015–2019 → 2020–2025)", fontsize=13, fontweight="bold")
+plt.title(" 공직 담론 주요 키워드 변화 (2015–2019 → 2020–2025)", fontsize=13, fontweight="bold")
 plt.xlabel("변화율(%)")
 plt.ylabel("단어")
 plt.tight_layout()
@@ -113,7 +113,7 @@ plt.show()
 # ------------------------------------------------------
 # 🔹 6. 논문용 요약표 생성
 # ------------------------------------------------------
-print("\n📘 [Step 3] 토픽별 대표 단어표 생성 중...")
+print(" [Step 3] 토픽별 대표 단어표 생성 중...")
 
 table_data = []
 for topic_id in sorted(set(df_2015["토픽"]).union(df_2020["토픽"])):
@@ -124,5 +124,5 @@ for topic_id in sorted(set(df_2015["토픽"]).union(df_2020["토픽"])):
 topic_table = pd.DataFrame(table_data, columns=["토픽", "2015–2019 주요 단어", "2020–2025 주요 단어"])
 topic_table.to_csv("../datas/topic_summary_table.csv", index=False, encoding="utf-8-sig")
 
-print("✅ 완료: topic_summary_table.csv 저장됨")
+print("완료: topic_summary_table.csv 저장됨")
 print(topic_table)

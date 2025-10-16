@@ -1,0 +1,43 @@
+﻿# ===============================================
+# public_perception 연구 프로젝트 requirements.txt
+# (윈도우 Python 3.11용 / 빅카인즈 기사 분석 및 시각화)
+# ===============================================
+
+# 데이터 처리 & 분석
+pandas==2.2.2
+numpy==1.26.4
+openpyxl==3.1.2
+
+# 자연어 처리 (토픽 분석, 형태소 분석 등)
+nltk==3.9.1
+scikit-learn==1.5.2
+konlpy==0.6.0
+
+# 시각화
+matplotlib==3.9.2
+seaborn==0.13.2
+wordcloud==1.9.3
+networkx==3.3
+
+# PDF 리포트 생성
+fpdf==1.7.2
+
+# 경고 억제 및 환경 보조
+tqdm==4.66.5
+regex==2024.9.11
+
+# (선택) 데이터 정제 / 한글폰트 관련
+beautifulsoup4==4.12.3
+requests==2.32.3
+fonttools==4.53.1
+
+# ===============================================
+# 설치 명령: pip install -r requirements.txt
+# (만약 인코딩 오류 발생시, 인코딩은 UTF-8 with BOM으로 수정 후 실행)
+# 사용방법
+# ...\public_perception 경로에서 py -3.11 -m venv .venv 생성
+# .\.venv\Scripts\activate 가상환경 활성화
+# pip install -r requirements.txt 의존성 설치
+# pip list 확인
+# ===============================================
+

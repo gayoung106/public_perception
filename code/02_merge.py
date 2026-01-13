@@ -13,9 +13,12 @@ for file in csv_files:
     tmp["source_file"] = os.path.basename(file)
     df_list.append(tmp)
 
+    print(f"[STEP 1] 병합 전 전체 기사 수(단순 합): {raw_row_count}")
+
 # 병합
 df_all = pd.concat(df_list, ignore_index=True)
 print("병합 후:", df_all.shape)
+print(f"[STEP 2] 병합 후 데이터 크기: {df_all.shape}")
 
 print("=== 병합된 컬럼 목록 ===")
 print(df_all.columns.tolist())
@@ -40,24 +43,32 @@ for col in ["언론사", "제목", "날짜"]:
         raise ValueError(f"필수 컬럼 누락: {col}")
 
 # 🔹 중복 제거
-print("중복 제거 전:", df_all.shape)
+before_dedup = len(df_all)
 df_all = df_all.drop_duplicates(subset=["언론사", "제목", "날짜"])
-print("중복 제거 후:", df_all.shape)
+after_dedup = len(df_all)
 
-# 날짜 타입 변환 부분을 아래와 같이 수정 (format 추가)
-df_all["날짜"] = pd.to_datetime(df_all["날짜"], format='%Y%m%d', errors="coerce")
+print(f"[STEP 3] 중복 제거 전: {before_dedup}")
+print(f"[STEP 3] 중복 제거 후: {after_dedup}")
+print(f"[STEP 3] 중복 제거로 삭제된 기사 수: {before_dedup - after_dedup}")
 
-# NaT(변환 실패) 제거
+# 🔹 날짜 변환
+df_all["날짜"] = pd.to_datetime(df_all["날짜"], format="%Y%m%d", errors="coerce")
+before_date_clean = len(df_all)
 df_all = df_all.dropna(subset=["날짜"])
+after_date_clean = len(df_all)
+
+print(f"[STEP 4] 날짜 변환 실패 제거 전: {before_date_clean}")
+print(f"[STEP 4] 날짜 변환 실패 제거 후: {after_date_clean}")
+print(f"[STEP 4] 날짜 오류로 제거된 기사 수: {before_date_clean - after_date_clean}")
 
 # 연도 컬럼
 df_all["year"] = df_all["날짜"].dt.year
 
-# 저장 (날짜 형식이 2013-03-31 형태로 깔끔하게 저장됩니다)
+# 저장
 df_all.to_csv(
     "../datas/news_2013_2022_merged.csv",
     index=False,
     encoding="utf-8-sig"
 )
 
-print("news_2013_2022_merged.csv 생성 완료")
+print(f"[STEP 5] 병합·정제 완료 데이터 저장: {len(df_all)} 건")

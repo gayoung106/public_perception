@@ -48,22 +48,40 @@ change_filtered["증감률(%)"] = (
     / change_filtered["박근혜정부"].replace(0, 0.0001)
 ) * 100
 
-# [오류 해결 포인트] 정렬된 변수명을 확실히 정의
 change_sorted = change_filtered.sort_values("증감률(%)", ascending=False)
 change_sorted.to_csv("../datas/keyword_change_verified.csv", encoding="utf-8-sig")
 print("분석 완료: keyword_change_verified.csv 파일이 생성되었습니다.")
 
-# 6. 시각화 (오류 났던 부분)
+# 6. 시각화 1: 좌우 분할 바 차트
 top10_moon = change_sorted.head(10)
-top10_park = change_sorted.tail(10).sort_values("증감률(%)") # 박근혜 우위 단어는 증감률 낮은 순
+top10_park = change_sorted.tail(10).sort_values("증감률(%)") 
 
 fig, ax = plt.subplots(1, 2, figsize=(16, 8))
 
-sns.barplot(x='증감률(%)', y=top10_moon.index, data=top10_moon, ax=ax[0], palette='Blues_r')
-ax[0].set_title('문재인 정부에서 비중이 급증한 핵심 담론 (TOP 10)', fontsize=15)
+sns.barplot(x='증감률(%)', y=top10_moon.index, data=top10_moon, ax=ax[0], palette='Blues_r', hue=top10_moon.index, legend=False)
+ax[0].set_title('문재인 정부 비중 급증 담론 (TOP 10)', fontsize=15)
 
-sns.barplot(x='증감률(%)', y=top10_park.index, data=top10_park, ax=ax[1], palette='Reds')
-ax[1].set_title('박근혜 정부에서 상대적으로 우세했던 담론 (TOP 10)', fontsize=15)
+sns.barplot(x='증감률(%)', y=top10_park.index, data=top10_park, ax=ax[1], palette='Reds', hue=top10_park.index, legend=False)
+ax[1].set_title('박근혜 정부 우세 담론 (TOP 10)', fontsize=15)
 
+plt.tight_layout()
+plt.show()
+
+# 7. 시각화 2: 0을 기준으로 양옆으로 뻗어나가는 Diverging Bar Chart
+
+top_10 = change_sorted.head(10)
+bottom_10 = change_sorted.tail(10)
+plot_df = pd.concat([top_10, bottom_10]).sort_values('증감률(%)')
+
+plt.figure(figsize=(12, 10))
+# 막대 색상 설정
+colors = ['red' if x < 0 else 'blue' for x in plot_df['증감률(%)']]
+
+# 인덱스(키워드)를 y축으로 사용
+plt.barh(plot_df.index, plot_df['증감률(%)'], color=colors)
+plt.axvline(0, color='black', linewidth=1)
+plt.title('정부 간 담론 변화율 (박근혜 vs 문재인)', fontsize=15)
+plt.xlabel('증감률 (%)')
+plt.grid(axis='x', linestyle='--', alpha=0.7)
 plt.tight_layout()
 plt.show()

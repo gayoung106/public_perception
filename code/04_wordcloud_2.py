@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 # 1. 불용어 로드
 try:
     from stopwords import STOPWORDS
-    STOPWORDS_SET = set(STOPWORDS)
+    STOPWORDS_SET = set(STOPWORDS())
 except ImportError:
     print("stopwords.py를 찾을 수 없습니다.")
     STOPWORDS_SET = set()

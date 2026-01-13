@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import pandas as pd
 from gensim import corpora
 from gensim.models import LdaMulticore
@@ -25,7 +23,7 @@ STOPWORDS_SET = set(STOPWORDS())
 # 2. 정부별 LDA 함수
 # ===============================
 def run_lda_by_government(df, gov_name):
-    print(f"\n📌 LDA 시작: {gov_name}")
+    print(f"\nLDA 시작: {gov_name}")
 
     texts = []
 
@@ -78,13 +76,13 @@ def run_lda_by_government(df, gov_name):
         encoding="utf-8-sig"
     )
 
-    print(f"✅ 토픽 결과 저장 완료: {gov_name}")
+    print(f"토픽 결과 저장 완료: {gov_name}")
 
 # ===============================
 # 3. 실행부
 # ===============================
 if __name__ == "__main__":
-    print("📌 데이터 로딩 중...")
+    print("데이터 로딩 중...")
     df = pd.read_csv(DATA_PATH, encoding="utf-8-sig")
 
     run_lda_by_government(df, "박근혜정부")

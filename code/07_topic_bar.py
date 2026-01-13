@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
@@ -37,7 +35,7 @@ for f in files:
     dfs.append(pd.read_csv(path, encoding="utf-8-sig"))
 
 df = pd.concat(dfs, ignore_index=True)
-print("📌 로딩 완료:", df.shape)
+print("로딩 완료:", df.shape)
 
 # ===============================
 # 2. 토픽별 키워드 바차트
@@ -72,7 +70,7 @@ def plot_topic_keywords(df, top_n=10):
             plt.savefig(save_path, dpi=300)
             plt.close()
 
-            print(f"✅ 저장 완료: {save_path}")
+            print(f"저장 완료: {save_path}")
 
 plot_topic_keywords(df)
 
@@ -102,5 +100,5 @@ save_path = "../result/topic_distribution_by_government.png"
 plt.savefig(save_path, dpi=300)
 plt.close()
 
-print(f"✅ 저장 완료: {save_path}")
+print(f"저장 완료: {save_path}")
 

@@ -49,7 +49,7 @@ change_filtered["증감률(%)"] = (
 ) * 100
 
 change_sorted = change_filtered.sort_values("증감률(%)", ascending=False)
-change_sorted.to_csv("../datas/keyword_change_verified.csv", encoding="utf-8-sig")
+change_sorted.to_csv("../result/keyword_change_verified.csv", encoding="utf-8-sig")
 print("분석 완료: keyword_change_verified.csv 파일이 생성되었습니다.")
 
 # 6. 시각화 1: 좌우 분할 바 차트
@@ -62,7 +62,7 @@ sns.barplot(x='증감률(%)', y=top10_moon.index, data=top10_moon, ax=ax[0], pal
 ax[0].set_title('문재인 정부 비중 급증 담론 (TOP 10)', fontsize=15)
 
 sns.barplot(x='증감률(%)', y=top10_park.index, data=top10_park, ax=ax[1], palette='Reds', hue=top10_park.index, legend=False)
-ax[1].set_title('박근혜 정부 우세 담론 (TOP 10)', fontsize=15)
+ax[1].set_title('박근혜 정부 비중 급증 담론 (TOP 10)', fontsize=15)
 
 plt.tight_layout()
 plt.show()

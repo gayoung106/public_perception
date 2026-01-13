@@ -4,37 +4,30 @@ import os
 
 # CSV 파일 불러오기
 csv_files = glob.glob("../datas/news_*.csv")
-print(f"CSV 파일 개수: {len(csv_files)}")
+print(f"[STEP 0] 원본 CSV 파일 개수: {len(csv_files)}")
 
 df_list = []
+raw_row_count = 0
 
 for file in csv_files:
     tmp = pd.read_csv(file, encoding="utf-8-sig")
     tmp["source_file"] = os.path.basename(file)
+    raw_row_count += len(tmp)
     df_list.append(tmp)
 
-    print(f"[STEP 1] 병합 전 전체 기사 수(단순 합): {raw_row_count}")
+print(f"[STEP 1] 병합 전 전체 기사 수(단순 합): {raw_row_count}")
 
 # 병합
 df_all = pd.concat(df_list, ignore_index=True)
-print("병합 후:", df_all.shape)
 print(f"[STEP 2] 병합 후 데이터 크기: {df_all.shape}")
 
+# 컬럼 확인
 print("=== 병합된 컬럼 목록 ===")
 print(df_all.columns.tolist())
 
-print("\n=== 컬럼별 결측치 개수 ===")
-print(df_all.isnull().sum())
-
-print("\n=== 날짜/일자 관련 컬럼 미리보기 ===")
-date_like_cols = [c for c in df_all.columns if "일" in c or "날" in c]
-print(date_like_cols)
-print(df_all[date_like_cols].head())
-
-# 🔹 일자 → 날짜로 컬럼명 통일
+# 🔹 컬럼명 통일
 if "일자" not in df_all.columns:
     raise ValueError("일자 컬럼이 없습니다.")
-
 df_all = df_all.rename(columns={"일자": "날짜"})
 
 # 🔹 필수 컬럼 체크

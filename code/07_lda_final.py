@@ -17,7 +17,7 @@ DATA_PATH = "../datas/preprocessed_2013_2022.csv"
 OUTPUT_DIR = "../result/lda"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-STOPWORDS_SET = set(STOPWORDS())
+STOPWORDS_SET = set(STOPWORDS(version="base"))
 
 # ===============================
 # 2. 정부별 LDA 함수

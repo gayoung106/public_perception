@@ -4,10 +4,14 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 import seaborn as sns
 from stopwords import STOPWORDS
 
+# 정부별 담론의 상대적 중요도 변화를 파악하기 위해 TF-IDF 분석을 수행하였다. 
+# 벡터 공간은 박근혜 정부 시기의 코퍼스를 기준으로 고정하였으며, 
+# 문재인 정부 시기의 담론은 동일한 어휘 공간에서 변환하여 비교하였다.
+
 # 1. 환경 설정
 plt.rcParams['font.family'] = 'Malgun Gothic'
 plt.rcParams['axes.unicode_minus'] = False
-STOPWORDS_LIST = STOPWORDS()  # 함수 호출 괄호 확인
+STOPWORDS_LIST = STOPWORDS(version="base") 
 
 # 2. 데이터 로드
 df = pd.read_csv("../datas/preprocessed_2013_2022.csv", encoding="utf-8-sig")
@@ -49,8 +53,8 @@ change_filtered["증감률(%)"] = (
 ) * 100
 
 change_sorted = change_filtered.sort_values("증감률(%)", ascending=False)
-change_sorted.to_csv("../result/keyword_change_verified.csv", encoding="utf-8-sig")
-print("분석 완료: keyword_change_verified.csv 파일이 생성되었습니다.")
+change_sorted.to_csv("../result/keyword_change_verified_base.csv", encoding="utf-8-sig")
+print("분석 완료: keyword_change_verified_base.csv 파일이 생성되었습니다.")
 
 # 6. 시각화 1: 좌우 분할 바 차트
 top10_moon = change_sorted.head(10)
@@ -59,10 +63,10 @@ top10_park = change_sorted.tail(10).sort_values("증감률(%)")
 fig, ax = plt.subplots(1, 2, figsize=(16, 8))
 
 sns.barplot(x='증감률(%)', y=top10_moon.index, data=top10_moon, ax=ax[0], palette='Blues_r', hue=top10_moon.index, legend=False)
-ax[0].set_title('문재인 정부 비중 급증 담론 (TOP 10)', fontsize=15)
+ax[0].set_title('문재인 정부 비중 급증 담론 (TOP 10) 1차 분석', fontsize=15)
 
 sns.barplot(x='증감률(%)', y=top10_park.index, data=top10_park, ax=ax[1], palette='Reds', hue=top10_park.index, legend=False)
-ax[1].set_title('박근혜 정부 비중 급증 담론 (TOP 10)', fontsize=15)
+ax[1].set_title('박근혜 정부 비중 급증 담론 (TOP 10) 1차 분석', fontsize=15)
 
 plt.tight_layout()
 # plt.show()
@@ -87,3 +91,8 @@ plt.grid(axis='x', linestyle='--', alpha=0.7)
 plt.tight_layout()
 # plt.show()
 plt.close()
+
+
+# 표: keyword_change_verified.csv
+# 그림: 담론 변화율 bar chart
+# 해석: 정책·행정 중심 → 감염병·위기 대응 중심 등

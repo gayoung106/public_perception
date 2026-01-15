@@ -69,7 +69,12 @@ sns.barplot(x='증감률(%)', y=top10_park.index, data=top10_park, ax=ax[1], pal
 ax[1].set_title('박근혜 정부 비중 급증 담론 (TOP 10) 차별 담론 강조 분석', fontsize=15)
 
 plt.tight_layout()
-# plt.show()
+# plt.show(
+plt.savefig(
+    "../result/figure_A1_tfidf_split_bar_conditional.png",
+    dpi=300,
+    bbox_inches="tight"
+)
 plt.close()
 
 # 7. 시각화 2: 0을 기준으로 양옆으로 뻗어나가는 Diverging Bar Chart
@@ -90,7 +95,13 @@ plt.xlabel('증감률 (%)')
 plt.grid(axis='x', linestyle='--', alpha=0.7)
 plt.tight_layout()
 # plt.show()
+plt.savefig(
+    "../result/figure1_tfidf_importance_change.png",
+    dpi=300,
+    bbox_inches="tight"
+)
 plt.close()
+
 
 
 # 표: keyword_change_verified.csv

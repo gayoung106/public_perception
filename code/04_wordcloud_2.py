@@ -22,12 +22,22 @@ df = pd.read_csv(file_path, usecols=["정부", "text"], encoding="utf-8-sig")
 
 print(f"전체 분석 대상 데이터: {len(df)}건")
 
+
 # 3. 정부별 워드클라우드 생성
 governments = ["박근혜정부", "문재인정부"]
 
 plt.rcParams['font.family'] = 'Malgun Gothic'
 fig, axes = plt.subplots(1, 2, figsize=(22, 10))
 
+# ===============================
+# 정부별 분석 데이터 건수 확인
+# ===============================
+print("\n[정부별 분석 데이터 건수]")
+
+for gov in governments:
+    count = df[df["정부"] == gov].shape[0]
+    print(f"{gov} 분석 데이터: {count}건")
+    
 # 결과 저장용 (재현성 및 추가 분석 대비)
 wc_results = {}
 

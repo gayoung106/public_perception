@@ -139,23 +139,16 @@ flowchart TD
 ```mermaid
 flowchart TD
     %% 1. 데이터 수집 단계
-    subgraph Step1 [1. 데이터 수집<br>및 표집]
-
-     S1[" "]:::spacer
-
+    subgraph Step1 [1. 데이터 수집]
         A[빅카인즈 뉴스 데이터베이스] --> B{언론사 비율 설정}
-
         B -->|보수| B1[중앙일보,<br> 조선일보,<br> 동아일보]
         B -->|진보| B2[경향신문,<br> 한겨레,<br> 프레시안]
         B -->|방송| B3[KBS, MBC,<br> SBS, YTN]
-
-        B1 --> C[14개 핵심 키워드 검색]
-        B2 --> C
-        B3 --> C
+        B1 & B2 & B3 --> C[14개 핵심 키워드 검색]
     end
 
     %% 2. 통합 및 정부 분류 단계
-    subgraph Step2 [2. 데이터 통합 <br>및 정부 유형 분류]
+    subgraph Step2 [2. 데이터 통합]
         C --> D[XLSX 병합 <br>및 CSV 데이터 정규화]
         D --> E{대통령 재임 기간 기준 분류}
         E -->|박근혜 정부| E1["2013.02.25 ~ 2017.03.10"]
@@ -163,7 +156,7 @@ flowchart TD
     end
 
     %% 3. 전처리 단계
-    subgraph Step3 [3. 텍스트 정제 <br>및 코퍼스 구축]
+    subgraph Step3 [3. 텍스트 정제]
         E1 & E2 --> F[제목 + 본문 <br>+ 키워드 텍스트 결합]
         F --> G[정규표현식 기반<br> 텍스트 정제]
         G --> H[불용어 처리 <br>및 반복 노이즈 제거]
@@ -180,7 +173,7 @@ flowchart TD
 
     classDef step fill:#ffffff,stroke:#000000,stroke-width:2px,color:#000000
     classDef node fill:#ffffff,stroke:#000000,stroke-width:1.4px,color:#000000
-    classDef spacer fill:#ffffff,stroke:#ffffff
+
     class Step1,Step2,Step3,Step4 step
     class A,B,B1,B2,B3,C,D,E,E1,E2,F,G,H,I,J1,J2,J3,J4 node
 

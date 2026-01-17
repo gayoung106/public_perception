@@ -47,13 +47,23 @@ flowchart LR
 
     R["공직사회 담론의 구조적 재편<br>제도개혁 중심 구조<br>+<br>조직문화·세대·근무경험<br> 담론의 다층화"]
 
+    %% Edges
     G --> H1
     G --> H2
     G --> H3
-
     H1 --> R
     H2 --> R
     H3 --> R
+
+    %% Class assignment
+    class G gov
+    class H1,H2,H3 hypo
+    class R result
+
+    %% Black & White / Journal style
+    classDef gov fill:#ffffff,stroke:#000000,stroke-width:2.5px,color:#000000
+    classDef hypo fill:#ffffff,stroke:#000000,stroke-width:1.8px,color:#000000,stroke-dasharray:4 3
+    classDef result fill:#ffffff,stroke:#000000,stroke-width:3px,color:#000000
 
 ```
 

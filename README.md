@@ -85,6 +85,12 @@ flowchart TD
     A --> B["1단계 (의제설정 2수준)<br>키워드 빈도·중요도 분석<br>H1"]
     A --> C["2단계 (프레임 구조 차이)<br>LDA 토픽 분석<br>H2"]
     A --> D["3단계 (담론 구조 재편)<br>공출현 네트워크 중심성 분석<br>H3"]
+
+    class A gov
+    class B,C,D step
+
+    classDef gov fill:#ffffff,stroke:#000000,stroke-width:2.5px,color:#000000
+    classDef step fill:#ffffff,stroke:#000000,stroke-width:1.8px,color:#000000
 ```
 
 ### 연구방법
@@ -165,13 +171,13 @@ flowchart TD
         I --> J4[H2: 프레임 구조 분석<br>LDA 토픽 모델링]
     end
 
-    %% 디자인 스타일링
-    style Step1 fill:#f5f5f5,stroke:#333,stroke-width:2px
-    style Step2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style Step3 fill:#f1f8e9,stroke:#2e7d32,stroke-width:2px
-    style Step4 fill:#fffde7,stroke:#fbc02d,stroke-width:2px
+    classDef step fill:#ffffff,stroke:#000000,stroke-width:2px,color:#000000
+    classDef node fill:#ffffff,stroke:#000000,stroke-width:1.4px,color:#000000
 
-    linkStyle default stroke:#555,stroke-width:1.5px
+    class Step1,Step2,Step3,Step4 step
+    class A,B,B1,B2,B3,C,D,E,E1,E2,F,G,H,I,J1,J2,J3,J4 node
+
+    linkStyle default stroke:#000000,stroke-width:1.2px
 
 ```
 

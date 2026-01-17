@@ -140,12 +140,18 @@ flowchart TD
 flowchart TD
     %% 1. 데이터 수집 단계
     subgraph Step1 [1. 데이터 수집<br>및 표집]
+
      S1[" "]:::spacer
+
         A[빅카인즈 뉴스 데이터베이스] --> B{언론사 비율 설정}
+
         B -->|보수| B1[중앙일보,<br> 조선일보,<br> 동아일보]
         B -->|진보| B2[경향신문,<br> 한겨레,<br> 프레시안]
         B -->|방송| B3[KBS, MBC,<br> SBS, YTN]
-        B1 & B2 & B3 --> C[14개 핵심 키워드 검색]
+
+        B1 --> C[14개 핵심 키워드 검색]
+        B2 --> C
+        B3 --> C
     end
 
     %% 2. 통합 및 정부 분류 단계
@@ -174,7 +180,7 @@ flowchart TD
 
     classDef step fill:#ffffff,stroke:#000000,stroke-width:2px,color:#000000
     classDef node fill:#ffffff,stroke:#000000,stroke-width:1.4px,color:#000000
-
+    classDef spacer fill:#ffffff,stroke:#ffffff
     class Step1,Step2,Step3,Step4 step
     class A,B,B1,B2,B3,C,D,E,E1,E2,F,G,H,I,J1,J2,J3,J4 node
 

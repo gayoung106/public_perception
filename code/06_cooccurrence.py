@@ -4,6 +4,16 @@ import math
 from itertools import combinations
 from collections import Counter
 
+import networkx as nx
+import matplotlib.pyplot as plt
+from matplotlib import font_manager, rc
+
+# Windows 한글 폰트 설정
+font_path = "C:/Windows/Fonts/malgun.ttf"  
+font = font_manager.FontProperties(fname=font_path)
+rc("font", family=font.get_name())
+rc("axes", unicode_minus=False)
+
 # ===============================
 # 1. 기본 설정
 # ===============================
@@ -23,7 +33,6 @@ def compute_pmi(documents, keywords, min_co_cnt=10):
     word_doc_freq = Counter()
     pair_counter = Counter()
 
-    # 문서 단위 빈도 계산
     for words in documents:
         filtered = words & keywords
         word_doc_freq.update(filtered)
@@ -62,7 +71,6 @@ def build_differential_cooccurrence_table(
 ):
     print("\n차별 공출현(PMI) 분석 시작")
 
-    # 정부별 문서 구성
     docs = {}
     for gov in ["박근혜정부", "문재인정부"]:
         gov_docs = []
@@ -75,7 +83,6 @@ def build_differential_cooccurrence_table(
         docs[gov] = gov_docs
         print(f" - {gov}: 문서 수 {len(gov_docs)}")
 
-    # PMI 계산
     pmi_pk = compute_pmi(docs["박근혜정부"], keywords, min_co_cnt)
     pmi_mj = compute_pmi(docs["문재인정부"], keywords, min_co_cnt)
 
@@ -102,7 +109,6 @@ def build_differential_cooccurrence_table(
 
     df = pd.DataFrame(rows).sort_values("ΔPMI", ascending=False)
 
-    # 상·하위 프레임 동시 제시
     df_final = pd.concat([
         df.head(top_n),
         df.tail(top_n)
@@ -118,7 +124,76 @@ def build_differential_cooccurrence_table(
     return df_final
 
 # ===============================
-# 4. 실행부
+# 4. PMI 네트워크 시각화
+# ===============================
+def plot_differential_pmi_network(
+    df,
+    min_abs_delta=0.5,
+    max_edges=40,
+    save_path="../result/figure_pmi_network.png"
+):
+    df_plot = df[abs(df["ΔPMI"]) >= min_abs_delta]
+    df_plot = df_plot.sort_values("ΔPMI", key=abs, ascending=False).head(max_edges)
+
+    G = nx.Graph()
+
+    for _, row in df_plot.iterrows():
+        w1 = row["키워드1"]
+        w2 = row["키워드2"]
+        delta = row["ΔPMI"]
+
+        G.add_edge(
+            w1, w2,
+            weight=abs(delta),
+            style="solid" if delta > 0 else "dashed"
+        )
+
+    pos = nx.spring_layout(G, seed=42, k=0.8)
+
+    plt.figure(figsize=(10, 8))
+
+    solid_edges = [(u, v) for u, v, d in G.edges(data=True) if d["style"] == "solid"]
+    dashed_edges = [(u, v) for u, v, d in G.edges(data=True) if d["style"] == "dashed"]
+
+    nx.draw_networkx_nodes(
+        G, pos,
+        node_size=1200,
+        node_color="white",
+        edgecolors="black"
+    )
+
+    # 🔥 여기 핵심 수정
+    nx.draw_networkx_labels(
+        G,
+        pos,
+        font_size=10,
+        font_family=font.get_name()
+    )
+
+    nx.draw_networkx_edges(
+        G, pos,
+        edgelist=solid_edges,
+        width=[G[u][v]["weight"] * 1.5 for u, v in solid_edges],
+        style="solid"
+    )
+
+    nx.draw_networkx_edges(
+        G, pos,
+        edgelist=dashed_edges,
+        width=[G[u][v]["weight"] * 1.5 for u, v in dashed_edges],
+        style="dashed"
+    )
+
+    plt.title("Differential Co-occurrence Network Based on PMI", fontsize=12)
+    plt.axis("off")
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=300)
+    plt.close()
+
+    print(f"Figure saved to: {save_path}")
+
+# ===============================
+# 5. 실행부
 # ===============================
 if __name__ == "__main__":
     text_df = pd.read_csv(
@@ -126,19 +201,16 @@ if __name__ == "__main__":
         encoding="utf-8-sig"
     )
 
-    # (A) 공통 제도·조직 프레임
     CORE_FRAME = {
         "공무원", "조직", "성과", "인사", "근무",
         "체계", "연금", "노동", "개혁", "혁신"
     }
 
-    # (B) 문재인정부 강화 프레임
     MJ_UP = {
         "공정", "인권", "소통", "참여", "규제",
         "청년", "여성", "공공", "데이터", "디지털"
     }
 
-    # (C) 박근혜정부 강화 프레임
     PK_UP = {
         "연금", "노조", "경영", "승진", "조직",
         "공무원", "개혁", "노동"
@@ -154,8 +226,8 @@ if __name__ == "__main__":
         top_n=30
     )
 
-    print("\n[문재인정부 강화 공출현 프레임]")
-    print(df_result[df_result["강화_시기"] == "문재인정부"].head(10))
-
-    print("\n[박근혜정부 강화 공출현 프레임]")
-    print(df_result[df_result["강화_시기"] == "박근혜정부"].head(10))
+    plot_differential_pmi_network(
+        df_result,
+        min_abs_delta=0.5,
+        max_edges=40
+    )

@@ -1,0 +1,4 @@
+﻿period,months,min_monthly_articles,years,min_yearly_articles,monthly_trend_feasible,yearly_trend_feasible,note
+moon_post_covid_2020_2022,29,3522,3,51842,True,True,Monthly/yearly trend tables are saved; short boundary years should be interpreted cautiously.
+moon_pre_covid_2017_2019,32,7243,3,70511,True,True,Monthly/yearly trend tables are saved; short boundary years should be interpreted cautiously.
+park_2013_2017,49,1495,5,15880,True,True,Monthly/yearly trend tables are saved; short boundary years should be interpreted cautiously.

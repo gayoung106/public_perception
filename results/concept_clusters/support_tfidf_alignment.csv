@@ -1,0 +1,16 @@
+﻿source,cluster_id,comparison,hit_count,hit_terms
+tfidf_pairwise_top100,organizational_culture,covid_period_shift,2,재택근무;직원
+tfidf_pairwise_top100,organizational_culture,cumulative_change,2,조직;재택근무
+tfidf_pairwise_top100,organizational_culture,government_change_pre_covid,2,조직;갑질
+tfidf_pairwise_top100,fairness,covid_period_shift,0,
+tfidf_pairwise_top100,fairness,cumulative_change,1,공정
+tfidf_pairwise_top100,fairness,government_change_pre_covid,1,공정
+tfidf_pairwise_top100,performance_npm,covid_period_shift,3,개혁;혁신;성과
+tfidf_pairwise_top100,performance_npm,cumulative_change,5,개혁;혁신;평가;구조조정;성과
+tfidf_pairwise_top100,performance_npm,government_change_pre_covid,2,책임;구조조정
+tfidf_pairwise_top100,digital_transformation,covid_period_shift,4,디지털;플랫폼;뉴딜;비대면
+tfidf_pairwise_top100,digital_transformation,cumulative_change,7,플랫폼;디지털;뉴딜;데이터;인공지능;비대면;클라우드
+tfidf_pairwise_top100,digital_transformation,government_change_pre_covid,6,인공지능;플랫폼;데이터;디지털;블록체인;클라우드
+tfidf_pairwise_top100,public_health_crisis,covid_period_shift,6,코로나;확진자;방역;접종;감염병;팬데믹
+tfidf_pairwise_top100,public_health_crisis,cumulative_change,6,코로나;확진자;방역;접종;감염병;팬데믹
+tfidf_pairwise_top100,public_health_crisis,government_change_pre_covid,0,

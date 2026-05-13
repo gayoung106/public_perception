@@ -1,0 +1,16 @@
+﻿source,cluster_id,comparison,hit_count,hit_terms
+log_odds_pairwise_top100,organizational_culture,covid_period_shift,1,재택근무
+log_odds_pairwise_top100,organizational_culture,cumulative_change,1,재택근무
+log_odds_pairwise_top100,organizational_culture,government_change_pre_covid,1,갑질
+log_odds_pairwise_top100,fairness,covid_period_shift,0,
+log_odds_pairwise_top100,fairness,cumulative_change,1,공정
+log_odds_pairwise_top100,fairness,government_change_pre_covid,1,공정
+log_odds_pairwise_top100,performance_npm,covid_period_shift,1,개혁
+log_odds_pairwise_top100,performance_npm,cumulative_change,2,개혁;구조조정
+log_odds_pairwise_top100,performance_npm,government_change_pre_covid,0,
+log_odds_pairwise_top100,digital_transformation,covid_period_shift,4,뉴딜;디지털;비대면;플랫폼
+log_odds_pairwise_top100,digital_transformation,cumulative_change,7,플랫폼;디지털;뉴딜;데이터;비대면;인공지능;클라우드
+log_odds_pairwise_top100,digital_transformation,government_change_pre_covid,6,플랫폼;인공지능;블록체인;데이터;클라우드;디지털
+log_odds_pairwise_top100,public_health_crisis,covid_period_shift,9,코로나;확진자;방역;접종;감염병;팬데믹;재난지원금;자가격리;중대본
+log_odds_pairwise_top100,public_health_crisis,cumulative_change,8,코로나;확진자;방역;접종;팬데믹;감염병;재난지원금;자가격리
+log_odds_pairwise_top100,public_health_crisis,government_change_pre_covid,0,

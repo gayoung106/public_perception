@@ -1,0 +1,42 @@
+{
+  "mode": "concept_clusters_three_period",
+  "data_path": "C:\\Users\\KMI\\Desktop\\gayoung\\public_perception\\datas\\preprocessed_2013_2022.csv",
+  "dictionary_path": "C:\\Users\\KMI\\Desktop\\gayoung\\public_perception\\code\\concept_clusters.json",
+  "output_dir": "C:\\Users\\KMI\\Desktop\\gayoung\\public_perception\\results\\concept_clusters",
+  "random_seed": 42,
+  "dictionary_version": "2026-05-13",
+  "matching": {
+    "unit": "whitespace token after existing preprocessing",
+    "casefold_latin": true,
+    "normalization": "exact token matching after lowercasing Latin strings"
+  },
+  "periods": [
+    {
+      "period": "park_2013_2017",
+      "label": "박근혜정부(2013-2017)",
+      "start": "2013-02-25",
+      "end": "2017-03-10"
+    },
+    {
+      "period": "moon_pre_covid_2017_2019",
+      "label": "문재인 전기/코로나 이전(2017-2019)",
+      "start": "2017-05-10",
+      "end": "2019-12-31"
+    },
+    {
+      "period": "moon_post_covid_2020_2022",
+      "label": "문재인 후기/코로나 이후(2020-2022)",
+      "start": "2020-01-01",
+      "end": "2022-05-09"
+    }
+  ],
+  "normalization": "cluster term count per 10000 total tokens",
+  "article_share": "documents with at least one cluster term divided by article count",
+  "input_documents": 1105749,
+  "period_counts": {
+    "park_2013_2017": 416527,
+    "moon_post_covid_2020_2022": 349294,
+    "moon_pre_covid_2017_2019": 339928
+  },
+  "methodological_note": "Dictionary counts are exact-token measures and should be interpreted as concept proxies, not exhaustive semantic measures."
+}

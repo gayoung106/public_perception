@@ -3,9 +3,11 @@
 datas/
 .venv/
 
-# large result files
-results/three_period/*all_terms.csv
+# Large analysis outputs
+results/**/*all_terms*.csv
+results/**/*term_counts*.csv
+results/**/*long*.csv
 
-# python cache
-__pycache__/
-*.pyc
+# Optional
+results/**/*raw*.csv
+results/**/*full*.csv

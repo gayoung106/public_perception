@@ -1,0 +1,77 @@
+{
+  "mode": "three_period",
+  "data_path": "C:\\Users\\KMI\\Desktop\\gayoung\\public_perception\\datas\\preprocessed_2013_2022.csv",
+  "output_dir": "C:\\Users\\KMI\\Desktop\\gayoung\\public_perception\\results\\three_period",
+  "random_seed": 42,
+  "periods": [
+    {
+      "period": "park_2013_2017",
+      "label": "박근혜정부(2013-2017)",
+      "start": "2013-02-25",
+      "end": "2017-03-10"
+    },
+    {
+      "period": "moon_pre_covid_2017_2019",
+      "label": "문재인 전기/코로나 이전(2017-2019)",
+      "start": "2017-05-10",
+      "end": "2019-12-31"
+    },
+    {
+      "period": "moon_post_covid_2020_2022",
+      "label": "문재인 후기/코로나 이후(2020-2022)",
+      "start": "2020-01-01",
+      "end": "2022-05-09"
+    }
+  ],
+  "comparisons": [
+    {
+      "comparison": "government_change_pre_covid",
+      "period_a": "park_2013_2017",
+      "period_b": "moon_pre_covid_2017_2019",
+      "interpretation": "문재인 전기에서 이미 나타난 정부교체 관련 변화"
+    },
+    {
+      "comparison": "covid_period_shift",
+      "period_a": "moon_pre_covid_2017_2019",
+      "period_b": "moon_post_covid_2020_2022",
+      "interpretation": "문재인 후기에서 추가 강화된 코로나 이후 변화"
+    },
+    {
+      "comparison": "cumulative_change",
+      "period_a": "park_2013_2017",
+      "period_b": "moon_post_covid_2020_2022",
+      "interpretation": "정부교체와 코로나 이후 변화가 누적된 총 변화"
+    }
+  ],
+  "stopwords": {
+    "version": "base",
+    "count": 1513
+  },
+  "tfidf": {
+    "max_features": 3000,
+    "min_df": 10,
+    "max_df": 0.7,
+    "vocabulary": "pooled three-period corpus"
+  },
+  "log_odds": {
+    "prior": "comparison-specific combined corpus informative Dirichlet prior",
+    "min_total_count": 30
+  },
+  "lda": {
+    "num_topics": 10,
+    "passes": 5,
+    "iterations": 100,
+    "random_state": 42,
+    "sample_size_limit": 200000,
+    "implementation": "gensim.models.LdaModel",
+    "workers": 1
+  },
+  "documents": {
+    "input_documents": 1105749,
+    "period_counts": {
+      "park_2013_2017": 416527,
+      "moon_post_covid_2020_2022": 349294,
+      "moon_pre_covid_2017_2019": 339928
+    }
+  }
+}

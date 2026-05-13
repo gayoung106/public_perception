@@ -1,0 +1,2 @@
+﻿mode,input_documents,lda_documents,sample_size_limit,sampled,random_seed,num_topics,passes,iterations,coherence_c_v,lda_implementation,workers
+three_period,1105749,200000,200000,True,42,10,5,100,0.543875,gensim.models.LdaModel,1

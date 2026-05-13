@@ -2,3 +2,10 @@
 *.zip
 datas/
 .venv/
+
+# large result files
+results/three_period/*all_terms.csv
+
+# python cache
+__pycache__/
+*.pyc

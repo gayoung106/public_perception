@@ -1,0 +1,38 @@
+{
+  "data_path": "C:\\Users\\KMI\\Desktop\\gayoung\\public_perception\\datas\\preprocessed_2013_2022.csv",
+  "output_dir": "C:\\Users\\KMI\\Desktop\\gayoung\\public_perception\\results\\covid_filtered",
+  "random_seed": 42,
+  "conditions": [
+    {
+      "name": "original_base",
+      "description": "Original main specification using STOPWORDS(version='base').",
+      "stopword_count": 1513
+    },
+    {
+      "name": "covid_filtered",
+      "description": "Robustness specification excluding base stopwords and COVID_TOKENS.",
+      "stopword_count": 1534
+    }
+  ],
+  "tfidf": {
+    "max_features": 3000,
+    "min_df": 10,
+    "max_df": 0.7,
+    "tokenizer": "str.split",
+    "park_corpus_fit_moon_corpus_transform": true
+  },
+  "log_odds": {
+    "prior": "combined corpus informative Dirichlet prior",
+    "min_total_count": 30,
+    "positive_direction": "문재인정부"
+  },
+  "lda": {
+    "num_topics": 10,
+    "passes": 5,
+    "iterations": 100,
+    "random_state": 42,
+    "implementation": "gensim.models.LdaModel",
+    "workers": 1,
+    "primary_comparison": "same-topic-space inference after COVID token removal"
+  }
+}

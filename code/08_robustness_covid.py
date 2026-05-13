@@ -1,245 +1,695 @@
-# ============================================================
-# 08_robustness_covid.py
-# 코로나 충격 분리 강건성 체크
-#
-# [방법 A] 시기 분할 비교: 2017-2019(코로나 전) vs 2020-2022(코로나 중)
-#   - 문재인 정부 내에서 코로나 前/中 구간을 분리하여
-#     TF-IDF 상위 키워드, Log-Odds 차이를 재산출
-#   - 두 구간 공통·차별 키워드를 CSV로 저장
-#
-# [방법 B] 코로나 관련 토큰 제외 후 TF-IDF/Log-Odds 재분석
-#   - 코로나, 바이러스, 확진, 방역, 마스크 등 키워드를 불용어 처리하고
-#     동일 분석 파이프라인 재실행
-#   - 원결과(방법 A) 대비 상위 50개 키워드 변화율을 비교표로 저장
-# ============================================================
+"""
+Formal COVID-19 robustness analysis.
 
-import os
+Purpose
+-------
+This script extends the earlier exploratory COVID split check into a
+publication-level robustness analysis for the reviewer concern that
+government-change effects may be confounded with the COVID-19 external shock.
+
+Design
+------
+1. Recompute the main Park-vs-Moon comparison under two conditions:
+   - original_base: STOPWORDS(version="base")
+   - covid_filtered: STOPWORDS(version="base") plus COVID_TOKENS
+2. Apply the same comparison logic to TF-IDF, log-odds, and LDA.
+3. Save appendix-ready CSV and XLSX tables under results/covid_filtered/.
+4. Use one random seed consistently and prefer single-core LDA for
+   reproducibility.
+"""
+
+from __future__ import annotations
+
+import json
 import math
-import pandas as pd
 from collections import Counter
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Iterable
+
+import numpy as np
+import pandas as pd
+from gensim import corpora
+from gensim.models import LdaModel
+from gensim.models.coherencemodel import CoherenceModel
 from sklearn.feature_extraction.text import TfidfVectorizer
-import matplotlib.pyplot as plt
-import matplotlib.font_manager as fm
-import platform
+
 from stopwords import STOPWORDS
 
-# -------------------------------------------------------
-# 0. 환경 설정
-# -------------------------------------------------------
-if platform.system() == "Windows":
-    font_path = "C:/Windows/Fonts/malgun.ttf"
-    font_name = fm.FontProperties(fname=font_path).get_name()
-    plt.rc("font", family=font_name)
-else:
-    plt.rc("font", family="NanumGothic")
-plt.rcParams["axes.unicode_minus"] = False
 
-OUTPUT_DIR = "../result/robustness"
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+# ---------------------------------------------------------------------
+# Reproducibility and analysis parameters
+# ---------------------------------------------------------------------
+RANDOM_SEED = 42
+np.random.seed(RANDOM_SEED)
 
-DATA_PATH = "../datas/preprocessed_2013_2022.csv"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DATA_PATH = PROJECT_ROOT / "datas" / "preprocessed_2013_2022.csv"
+OUTPUT_DIR = PROJECT_ROOT / "results" / "covid_filtered"
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-# 코로나 관련 제거 토큰 (방법 B)
+DATE_COL = "날짜"
+YEAR_COL = "year"
+GOV_COL = "정부"
+TEXT_COL = "text"
+PARK = "박근혜정부"
+MOON = "문재인정부"
+
+TFIDF_MAX_FEATURES = 3000
+TFIDF_MIN_DF = 10
+TFIDF_MAX_DF = 0.7
+TFIDF_TOP_N = 100
+
+LOG_ODDS_MIN_COUNT = 30
+
+LDA_NUM_TOPICS = 10
+LDA_PASSES = 5
+LDA_ITERATIONS = 100
+LDA_NO_BELOW = 10
+LDA_NO_ABOVE = 0.5
+LDA_SAMPLE_SIZE = 200_000
+
+
+# COVID terms are intentionally kept outside stopwords.py so the main analysis
+# remains unchanged and the filtered specification is auditable.
 COVID_TOKENS = {
-    "코로나", "코로나19", "바이러스", "확진", "확진자", "감염",
-    "방역", "마스크", "백신", "접종", "격리", "자가격리",
-    "거리두기", "사회적거리두기", "집합금지", "봉쇄", "팬데믹",
-    "신종감염병", "중앙방역대책본부", "질병관리청", "방역당국",
-    "코로나바이러스", "감염병", "변이", "오미크론", "델타",
+    "코로나",
+    "코로나19",
+    "코로나바이러스",
+    "신종코로나",
+    "신종코로나바이러스",
+    "바이러스",
+    "확진",
+    "확진자",
+    "감염",
+    "감염증",
+    "신종",
+    "마스크",
+    "백신",
+    "백신접종",
+    "접종",
+    "방역",
+    "방역당국",
+    "자가격리",
+    "격리",
+    "거리두기",
+    "사회적거리두기",
+    "집합금지",
+    "봉쇄",
+    "팬데믹",
+    "위드코로나",
+    "오미크론",
+    "델타",
+    "중대본",
+    "중앙방역대책본부",
+    "질병관리청",
+    "재난지원금",
+    "비대면",
 }
 
-STOPWORDS_SET = set(STOPWORDS(version="base")) | COVID_TOKENS
 
-# -------------------------------------------------------
-# 1. 데이터 로딩 및 기간 구분
-# -------------------------------------------------------
-print("데이터 로딩 중...")
-df = pd.read_csv(DATA_PATH, encoding="utf-8-sig")
-df["날짜"] = pd.to_datetime(df["날짜"], errors="coerce")
-df = df.dropna(subset=["날짜", "text"])
-df["year"] = df["날짜"].dt.year
+@dataclass(frozen=True)
+class Condition:
+    name: str
+    stopwords: set[str]
+    description: str
 
-# 문재인 정부 데이터만 추출 후 코로나 전/후 분할
-mj_df = df[df["정부"] == "문재인정부"].copy()
-pre_covid  = mj_df[mj_df["year"].between(2017, 2019)]   # 코로나 前
-post_covid = mj_df[mj_df["year"].between(2020, 2022)]   # 코로나 中
 
-print(f"문재인 정부 전체: {len(mj_df):,}건")
-print(f"  코로나 前 (2017-2019): {len(pre_covid):,}건")
-print(f"  코로나 中 (2020-2022): {len(post_covid):,}건")
+def load_data() -> pd.DataFrame:
+    df = pd.read_csv(DATA_PATH, encoding="utf-8-sig")
+    df = df.dropna(subset=[TEXT_COL, GOV_COL]).copy()
+    df = df[df[GOV_COL].isin([PARK, MOON])].copy()
+    df[DATE_COL] = pd.to_datetime(df[DATE_COL], errors="coerce")
+    df[YEAR_COL] = df[DATE_COL].dt.year
+    return df
 
-# -------------------------------------------------------
-# 2-A. TF-IDF 상위 키워드 비교 (방법 A: 시기 분할)
-# -------------------------------------------------------
-def tokenize_filter(text, extra_stopwords=None):
-    sw = set(STOPWORDS(version="base"))
-    if extra_stopwords:
-        sw |= extra_stopwords
-    return " ".join(
-        w for w in str(text).split()
-        if len(w) > 1 and w not in sw
-    )
 
-def get_tfidf_top(texts, n=50, extra_stopwords=None):
-    cleaned = [tokenize_filter(t, extra_stopwords) for t in texts]
-    vec = TfidfVectorizer(max_features=5000)
-    mat = vec.fit_transform(cleaned)
-    scores = mat.mean(axis=0).A1
-    words = vec.get_feature_names_out()
-    return pd.DataFrame({"키워드": words, "TF-IDF": scores}).sort_values(
-        "TF-IDF", ascending=False
-    ).head(n).reset_index(drop=True)
+def tokenize(text: str, stopwords: set[str]) -> list[str]:
+    return [
+        token
+        for token in str(text).split()
+        if len(token) > 1 and token not in stopwords
+    ]
 
-print("\n[방법 A] 코로나 전/후 TF-IDF 계산 중...")
-pre_tfidf  = get_tfidf_top(pre_covid["text"],  n=50)
-post_tfidf = get_tfidf_top(post_covid["text"], n=50)
 
-pre_tfidf["시기"]  = "2017-2019(코로나前)"
-post_tfidf["시기"] = "2020-2022(코로나中)"
-pre_tfidf["순위"]  = range(1, len(pre_tfidf) + 1)
-post_tfidf["순위"] = range(1, len(post_tfidf) + 1)
+def cleaned_corpus(texts: Iterable[str], stopwords: set[str]) -> list[str]:
+    return [" ".join(tokenize(text, stopwords)) for text in texts]
 
-tfidf_split = pd.concat([pre_tfidf, post_tfidf])
-tfidf_split.to_csv(
-    os.path.join(OUTPUT_DIR, "tfidf_covid_split.csv"),
-    index=False, encoding="utf-8-sig"
-)
-print("저장: tfidf_covid_split.csv")
 
-# 공통 키워드 (안정성 확인)
-pre_set  = set(pre_tfidf["키워드"])
-post_set = set(post_tfidf["키워드"])
-common   = pre_set & post_set
-pd.DataFrame({"공통키워드": sorted(common)}).to_csv(
-    os.path.join(OUTPUT_DIR, "tfidf_covid_common_keywords.csv"),
-    index=False, encoding="utf-8-sig"
-)
-print(f"공통 키워드 수: {len(common)}")
+def save_excel(tables: dict[str, pd.DataFrame], path: Path) -> None:
+    with pd.ExcelWriter(path, engine="openpyxl") as writer:
+        for sheet_name, table in tables.items():
+            table.to_excel(writer, sheet_name=sheet_name[:31], index=False)
 
-# TF-IDF 상위 20 시각화 비교
-fig, axes = plt.subplots(1, 2, figsize=(14, 7))
-for ax, (sub_df, title) in zip(axes, [
-    (pre_tfidf.head(20),  "2017-2019 (코로나 前)"),
-    (post_tfidf.head(20), "2020-2022 (코로나 中)"),
-]):
-    ax.barh(sub_df["키워드"][::-1], sub_df["TF-IDF"][::-1])
-    ax.set_title(title)
-    ax.set_xlabel("평균 TF-IDF")
-plt.suptitle("문재인 정부 코로나 前/中 TF-IDF 상위 20 키워드 비교")
-plt.tight_layout()
-plt.savefig(os.path.join(OUTPUT_DIR, "fig_tfidf_covid_split.png"), dpi=300)
-plt.close()
-print("저장: fig_tfidf_covid_split.png")
 
-# -------------------------------------------------------
-# 2-B.  Log-Odds 비교 (코로나 前 vs 코로나 中)
-# -------------------------------------------------------
-def word_freq(texts, sw):
-    counter = Counter()
-    for t in texts:
-        words = [w for w in str(t).split() if len(w) > 1 and w not in sw]
-        counter.update(words)
-    return counter
+def build_conditions() -> list[Condition]:
+    base_stopwords = set(STOPWORDS(version="base"))
+    return [
+        Condition(
+            name="original_base",
+            stopwords=base_stopwords,
+            description="Original main specification using STOPWORDS(version='base').",
+        ),
+        Condition(
+            name="covid_filtered",
+            stopwords=base_stopwords | COVID_TOKENS,
+            description="Robustness specification excluding base stopwords and COVID_TOKENS.",
+        ),
+    ]
 
-def log_odds(count_a, count_b, prior_weight=0.01):
-    """Informative Dirichlet prior log-odds ratio"""
-    vocab = set(count_a.keys()) | set(count_b.keys())
-    total_a = sum(count_a.values())
-    total_b = sum(count_b.values())
+
+def audit_covid_tokens(base_stopwords: set[str]) -> pd.DataFrame:
     rows = []
-    for w in vocab:
-        fa = count_a.get(w, 0)
-        fb = count_b.get(w, 0)
-        if fa + fb < 5:
-            continue
-        pa = (fa + prior_weight) / (total_a + prior_weight * len(vocab))
-        pb = (fb + prior_weight) / (total_b + prior_weight * len(vocab))
-        lo = math.log(pa / pb)
-        rows.append({"키워드": w, "log_odds": lo,
-                     "빈도_A": fa, "빈도_B": fb})
-    return pd.DataFrame(rows).sort_values("log_odds", ascending=False)
+    for token in sorted(COVID_TOKENS):
+        rows.append(
+            {
+                "token": token,
+                "already_in_base_stopwords": token in base_stopwords,
+                "added_by_covid_filter": token not in base_stopwords,
+            }
+        )
+    return pd.DataFrame(rows)
 
-print("\n[방법 A] Log-Odds 계산 중...")
-BASE_SW = set(STOPWORDS(version="base"))
-freq_pre  = word_freq(pre_covid["text"],  BASE_SW)
-freq_post = word_freq(post_covid["text"], BASE_SW)
-lo_df = log_odds(freq_post, freq_pre)   # 양수 = 코로나 中 강화
 
-lo_top = pd.concat([lo_df.head(30), lo_df.tail(30)])
-lo_top.columns = ["키워드", "Log-Odds(코로나中-前)", "빈도_코로나中", "빈도_코로나前"]
-lo_top.to_csv(
-    os.path.join(OUTPUT_DIR, "log_odds_covid_split.csv"),
-    index=False, encoding="utf-8-sig"
-)
-print("저장: log_odds_covid_split.csv")
+def compute_tfidf_change(df: pd.DataFrame, condition: Condition) -> pd.DataFrame:
+    park_docs = cleaned_corpus(df.loc[df[GOV_COL] == PARK, TEXT_COL], condition.stopwords)
+    moon_docs = cleaned_corpus(df.loc[df[GOV_COL] == MOON, TEXT_COL], condition.stopwords)
 
-# -------------------------------------------------------
-# 3. 방법 B: 코로나 토큰 제거 후 전체(박근혜 vs 문재인) 재분석
-# -------------------------------------------------------
-print("\n[방법 B] 코로나 토큰 제거 후 전체 정부 비교 재분석...")
+    vectorizer = TfidfVectorizer(
+        max_features=TFIDF_MAX_FEATURES,
+        min_df=TFIDF_MIN_DF,
+        max_df=TFIDF_MAX_DF,
+        tokenizer=str.split,
+        token_pattern=None,
+        lowercase=False,
+    )
+    tfidf_park = vectorizer.fit_transform(park_docs)
+    tfidf_moon = vectorizer.transform(moon_docs)
 
-pk_df = df[df["정부"] == "박근혜정부"]
+    terms = vectorizer.get_feature_names_out()
+    result = pd.DataFrame(
+        {
+            "keyword": terms,
+            "tfidf_park": np.asarray(tfidf_park.mean(axis=0)).ravel(),
+            "tfidf_moon": np.asarray(tfidf_moon.mean(axis=0)).ravel(),
+        }
+    )
+    result["importance"] = result["tfidf_park"] + result["tfidf_moon"]
+    result["delta_moon_minus_park"] = result["tfidf_moon"] - result["tfidf_park"]
+    result["pct_change_moon_vs_park"] = (
+        result["delta_moon_minus_park"] / result["tfidf_park"].replace(0, 0.0001)
+    ) * 100
+    result["condition"] = condition.name
+    return result.sort_values("importance", ascending=False).reset_index(drop=True)
 
-freq_pk_b = word_freq(pk_df["text"],  STOPWORDS_SET)
-freq_mj_b = word_freq(mj_df["text"], STOPWORDS_SET)
 
-lo_b = log_odds(freq_mj_b, freq_pk_b)
-lo_b_top = pd.concat([lo_b.head(30), lo_b.tail(30)])
-lo_b_top.columns = ["키워드", "Log-Odds(문재인-박근혜)", "빈도_문재인", "빈도_박근혜"]
-lo_b_top.to_csv(
-    os.path.join(OUTPUT_DIR, "log_odds_covid_excluded.csv"),
-    index=False, encoding="utf-8-sig"
-)
-print("저장: log_odds_covid_excluded.csv")
+def compare_keyword_tables(
+    original: pd.DataFrame,
+    filtered: pd.DataFrame,
+    score_col: str,
+    top_n: int,
+) -> pd.DataFrame:
+    orig_top = original.head(top_n).copy()
+    filt_top = filtered.head(top_n).copy()
 
-# 원결과(../result/log_odds_top_*.csv)와 상위 30 키워드 변화 비교
-def compare_with_original(original_csv, new_df, label):
-    try:
-        orig = pd.read_csv(original_csv, encoding="utf-8-sig")
-    except FileNotFoundError:
-        print(f"원결과 파일 없음: {original_csv}")
-        return
-    
-    col_name = "키워드" if "키워드" in orig.columns else "단어"
-    orig_kw = set(orig[col_name].head(30))
-    new_kw  = set(new_df["키워드"].head(30))
-    overlap = orig_kw & new_kw
-    stability = len(overlap) / 30 * 100
-    print(f"\n[{label}] 상위 30 키워드 안정성: {stability:.1f}% ({len(overlap)}/30 유지)")
-    pd.DataFrame({
-        "원결과 키워드": sorted(orig_kw),
-        "유지 여부": [("O" if k in new_kw else "X") for k in sorted(orig_kw)]
-    }).to_csv(
-        os.path.join(OUTPUT_DIR, f"stability_{label}.csv"),
-        index=False, encoding="utf-8-sig"
+    merged = orig_top.merge(
+        filt_top,
+        on="keyword",
+        how="outer",
+        suffixes=("_original", "_covid_filtered"),
+        indicator=True,
+    )
+    merged["retained_in_top_n"] = merged["_merge"] == "both"
+    merged["rank_original"] = merged[f"{score_col}_original"].rank(
+        ascending=False, method="min"
+    )
+    merged["rank_covid_filtered"] = merged[f"{score_col}_covid_filtered"].rank(
+        ascending=False, method="min"
+    )
+    merged["rank_change_filtered_minus_original"] = (
+        merged["rank_covid_filtered"] - merged["rank_original"]
+    )
+    return merged.drop(columns=["_merge"]).sort_values(
+        ["retained_in_top_n", "rank_original"], ascending=[False, True]
     )
 
-compare_with_original(
-    "../result/log_odds_top_moon.csv",
-    lo_b[lo_b["log_odds"] > 0],
-    "문재인정부"
-)
-compare_with_original(
-    "../result/log_odds_top_park.csv",
-    lo_b[lo_b["log_odds"] < 0].assign(log_odds=lambda x: -x["log_odds"]),
-    "박근혜정부"
-)
 
-# -------------------------------------------------------
-# 4. 요약 테이블: 코로나 前/後 연도별 기사 수
-# -------------------------------------------------------
-yearly = (
-    mj_df.groupby("year")
-    .size()
-    .reset_index(name="기사수")
-    .assign(코로나구분=lambda x: x["year"].apply(
-        lambda y: "코로나前(2017-2019)" if y <= 2019 else "코로나中(2020-2022)"
-    ))
-)
-yearly.to_csv(
-    os.path.join(OUTPUT_DIR, "yearly_article_count_mj.csv"),
-    index=False, encoding="utf-8-sig"
-)
-print("\n저장: yearly_article_count_mj.csv")
-print("\n[완료] 08_robustness_covid.py 실행 완료")
-print(f"결과 디렉토리: {OUTPUT_DIR}")
+def count_words(texts: Iterable[str], stopwords: set[str]) -> Counter:
+    counts: Counter = Counter()
+    for text in texts:
+        counts.update(tokenize(text, stopwords))
+    return counts
+
+
+def compute_log_odds(df: pd.DataFrame, condition: Condition) -> pd.DataFrame:
+    park_counts = count_words(df.loc[df[GOV_COL] == PARK, TEXT_COL], condition.stopwords)
+    moon_counts = count_words(df.loc[df[GOV_COL] == MOON, TEXT_COL], condition.stopwords)
+
+    prior = Counter()
+    prior.update(park_counts)
+    prior.update(moon_counts)
+
+    alpha_0 = sum(prior.values())
+    n_moon = sum(moon_counts.values())
+    n_park = sum(park_counts.values())
+    rows = []
+
+    for word in sorted(set(park_counts) | set(moon_counts)):
+        c_moon = moon_counts.get(word, 0)
+        c_park = park_counts.get(word, 0)
+        c_prior = prior[word]
+
+        if c_moon + c_park < LOG_ODDS_MIN_COUNT:
+            continue
+
+        log_odds = math.log(
+            (c_moon + c_prior) / (n_moon - c_moon + alpha_0 - c_prior)
+        ) - math.log(
+            (c_park + c_prior) / (n_park - c_park + alpha_0 - c_prior)
+        )
+        var = (1 / (c_moon + c_prior)) + (1 / (c_park + c_prior))
+        z_score = log_odds / math.sqrt(var)
+        rows.append(
+            {
+                "keyword": word,
+                "count_moon": c_moon,
+                "count_park": c_park,
+                "log_odds_z": z_score,
+                "direction": MOON if z_score > 0 else PARK,
+                "abs_log_odds_z": abs(z_score),
+                "condition": condition.name,
+            }
+        )
+
+    return pd.DataFrame(rows).sort_values(
+        "log_odds_z", ascending=False
+    ).reset_index(drop=True)
+
+
+def compare_log_odds(original: pd.DataFrame, filtered: pd.DataFrame, top_n: int) -> pd.DataFrame:
+    original_ranked = original.assign(
+        rank_original=original["abs_log_odds_z"].rank(ascending=False, method="min")
+    )
+    filtered_ranked = filtered.assign(
+        rank_covid_filtered=filtered["abs_log_odds_z"].rank(ascending=False, method="min")
+    )
+    original_top = original_ranked.nsmallest(top_n, "rank_original")
+    filtered_top = filtered_ranked.nsmallest(top_n, "rank_covid_filtered")
+
+    merged = original_top.merge(
+        filtered_top,
+        on="keyword",
+        how="outer",
+        suffixes=("_original", "_covid_filtered"),
+        indicator=True,
+    )
+    merged["retained_in_top_n"] = merged["_merge"] == "both"
+    merged["direction_stable"] = (
+        merged["direction_original"] == merged["direction_covid_filtered"]
+    )
+    merged["rank_change_filtered_minus_original"] = (
+        merged["rank_covid_filtered"] - merged["rank_original"]
+    )
+    return merged.drop(columns=["_merge"]).sort_values(
+        ["retained_in_top_n", "rank_original"], ascending=[False, True]
+    )
+
+
+def prepare_lda_frame(df: pd.DataFrame) -> pd.DataFrame:
+    if len(df) <= LDA_SAMPLE_SIZE:
+        return df.copy()
+    return df.sample(LDA_SAMPLE_SIZE, random_state=RANDOM_SEED).copy()
+
+
+def train_lda(texts: list[list[str]]) -> tuple[LdaModel, corpora.Dictionary, list[list[tuple[int, int]]]]:
+    dictionary = corpora.Dictionary(texts)
+    dictionary.filter_extremes(no_below=LDA_NO_BELOW, no_above=LDA_NO_ABOVE)
+    corpus = [dictionary.doc2bow(text) for text in texts]
+    lda = LdaModel(
+        corpus=corpus,
+        id2word=dictionary,
+        num_topics=LDA_NUM_TOPICS,
+        random_state=RANDOM_SEED,
+        passes=LDA_PASSES,
+        iterations=LDA_ITERATIONS,
+        alpha="symmetric",
+        eta="auto",
+    )
+    return lda, dictionary, corpus
+
+
+def topic_distribution(
+    df: pd.DataFrame,
+    lda: LdaModel,
+    dictionary: corpora.Dictionary,
+    token_col: str,
+    condition_name: str,
+) -> pd.DataFrame:
+    rows = []
+    for gov in [PARK, MOON]:
+        sub = df[df[GOV_COL] == gov]
+        vectors = []
+        for tokens in sub[token_col]:
+            bow = dictionary.doc2bow(tokens)
+            dist = np.zeros(LDA_NUM_TOPICS)
+            for topic_id, prob in lda.get_document_topics(bow, minimum_probability=0):
+                dist[topic_id] = prob
+            vectors.append(dist)
+        mat = np.vstack(vectors)
+        for topic_id, mean_prob in enumerate(mat.mean(axis=0)):
+            rows.append(
+                {
+                    "condition": condition_name,
+                    "government": gov,
+                    "topic": topic_id,
+                    "mean_topic_share": round(float(mean_prob), 6),
+                    "documents": len(sub),
+                }
+            )
+    return pd.DataFrame(rows)
+
+
+def lda_topic_words(lda: LdaModel, condition_name: str, topn: int = 15) -> pd.DataFrame:
+    rows = []
+    for topic_id in range(LDA_NUM_TOPICS):
+        for rank, (word, prob) in enumerate(lda.show_topic(topic_id, topn=topn), start=1):
+            rows.append(
+                {
+                    "condition": condition_name,
+                    "topic": topic_id,
+                    "rank": rank,
+                    "keyword": word,
+                    "probability": round(float(prob), 6),
+                }
+            )
+    return pd.DataFrame(rows)
+
+
+def lda_government_gap(dist_df: pd.DataFrame) -> pd.DataFrame:
+    pivot = dist_df.pivot_table(
+        index=["condition", "topic"],
+        columns="government",
+        values="mean_topic_share",
+        aggfunc="first",
+    ).reset_index()
+    pivot["moon_minus_park"] = pivot[MOON] - pivot[PARK]
+    pivot["abs_gap"] = pivot["moon_minus_park"].abs()
+    return pivot.sort_values(["condition", "abs_gap"], ascending=[True, False])
+
+
+def run_lda_robustness(df: pd.DataFrame, conditions: list[Condition]) -> dict[str, pd.DataFrame]:
+    lda_df = prepare_lda_frame(df)
+    original = conditions[0]
+    filtered = conditions[1]
+
+    lda_df["tokens_original"] = lda_df[TEXT_COL].apply(lambda x: tokenize(x, original.stopwords))
+    lda_df["tokens_covid_filtered"] = lda_df[TEXT_COL].apply(
+        lambda x: tokenize(x, filtered.stopwords)
+    )
+    lda_df = lda_df[lda_df["tokens_original"].apply(len) > 0].copy()
+
+    original_texts = lda_df["tokens_original"].tolist()
+    lda_original, dictionary_original, corpus_original = train_lda(original_texts)
+
+    # Primary LDA robustness: infer original and COVID-filtered documents in the
+    # same topic space learned from the original corpus.
+    dist_original = topic_distribution(
+        lda_df, lda_original, dictionary_original, "tokens_original", "original_base"
+    )
+    dist_filtered_same_model = topic_distribution(
+        lda_df,
+        lda_original,
+        dictionary_original,
+        "tokens_covid_filtered",
+        "covid_filtered_same_topic_space",
+    )
+
+    topics_original = lda_topic_words(lda_original, "original_base")
+
+    coherence_rows = []
+    coherence_original = CoherenceModel(
+        model=lda_original,
+        texts=original_texts,
+        dictionary=dictionary_original,
+        coherence="c_v",
+        processes=1,
+    ).get_coherence()
+    coherence_rows.append(
+        {
+            "condition": "original_base",
+            "model": "original_topic_space",
+            "coherence_type": "c_v",
+            "coherence": round(float(coherence_original), 6),
+        }
+    )
+
+    # Secondary sensitivity: train a separate filtered LDA model. Topic IDs from
+    # this model are not directly comparable to the original model, so the main
+    # comparison table uses the same-topic-space inference above.
+    filtered_texts = [
+        tokens for tokens in lda_df["tokens_covid_filtered"].tolist() if len(tokens) > 0
+    ]
+    lda_filtered, dictionary_filtered, _ = train_lda(filtered_texts)
+    topics_filtered_model = lda_topic_words(lda_filtered, "covid_filtered_retrained")
+    coherence_filtered = CoherenceModel(
+        model=lda_filtered,
+        texts=filtered_texts,
+        dictionary=dictionary_filtered,
+        coherence="c_v",
+        processes=1,
+    ).get_coherence()
+    coherence_rows.append(
+        {
+            "condition": "covid_filtered",
+            "model": "retrained_filtered_topic_space",
+            "coherence_type": "c_v",
+            "coherence": round(float(coherence_filtered), 6),
+        }
+    )
+
+    dist_all = pd.concat([dist_original, dist_filtered_same_model], ignore_index=True)
+    gap = lda_government_gap(dist_all)
+    gap_comparison = gap.pivot_table(
+        index="topic",
+        columns="condition",
+        values="moon_minus_park",
+        aggfunc="first",
+    ).reset_index()
+    gap_comparison["gap_change_filtered_minus_original"] = (
+        gap_comparison["covid_filtered_same_topic_space"]
+        - gap_comparison["original_base"]
+    )
+    gap_comparison["abs_gap_change"] = gap_comparison[
+        "gap_change_filtered_minus_original"
+    ].abs()
+
+    return {
+        "lda_topic_words_original": topics_original,
+        "lda_topic_words_filtered_retrained": topics_filtered_model,
+        "lda_topic_distribution": dist_all,
+        "lda_government_gap": gap,
+        "lda_gap_comparison": gap_comparison.sort_values(
+            "abs_gap_change", ascending=False
+        ),
+        "lda_coherence": pd.DataFrame(coherence_rows),
+        "lda_sample_metadata": pd.DataFrame(
+            [
+                {
+                    "input_documents": len(df),
+                    "lda_documents": len(lda_df),
+                    "sample_size_limit": LDA_SAMPLE_SIZE,
+                    "sampled": len(df) > LDA_SAMPLE_SIZE,
+                    "random_seed": RANDOM_SEED,
+                    "num_topics": LDA_NUM_TOPICS,
+                    "passes": LDA_PASSES,
+                    "iterations": LDA_ITERATIONS,
+                    "lda_implementation": "gensim.models.LdaModel",
+                    "workers": 1,
+                }
+            ]
+        ),
+    }
+
+
+def summarize_stability(
+    tfidf_comparison: pd.DataFrame,
+    log_odds_comparison: pd.DataFrame,
+    lda_gap_comparison: pd.DataFrame,
+) -> pd.DataFrame:
+    tfidf_retention = tfidf_comparison["retained_in_top_n"].sum() / TFIDF_TOP_N
+    log_retention = log_odds_comparison["retained_in_top_n"].sum() / TFIDF_TOP_N
+    log_direction_stable = log_odds_comparison.loc[
+        log_odds_comparison["retained_in_top_n"], "direction_stable"
+    ].mean()
+
+    return pd.DataFrame(
+        [
+            {
+                "method": "TF-IDF",
+                "comparison": f"top {TFIDF_TOP_N} original vs covid-filtered",
+                "stability_metric": "top_keyword_retention_rate",
+                "value": round(float(tfidf_retention), 4),
+            },
+            {
+                "method": "Log-odds",
+                "comparison": f"top {TFIDF_TOP_N} by |z| original vs covid-filtered",
+                "stability_metric": "top_keyword_retention_rate",
+                "value": round(float(log_retention), 4),
+            },
+            {
+                "method": "Log-odds",
+                "comparison": "retained top keywords",
+                "stability_metric": "direction_stability_rate",
+                "value": round(float(log_direction_stable), 4),
+            },
+            {
+                "method": "LDA",
+                "comparison": "same-topic-space government gap",
+                "stability_metric": "mean_abs_topic_gap_change",
+                "value": round(float(lda_gap_comparison["abs_gap_change"].mean()), 6),
+            },
+            {
+                "method": "LDA",
+                "comparison": "same-topic-space government gap",
+                "stability_metric": "max_abs_topic_gap_change",
+                "value": round(float(lda_gap_comparison["abs_gap_change"].max()), 6),
+            },
+        ]
+    )
+
+
+def save_metadata(df: pd.DataFrame, conditions: list[Condition]) -> None:
+    yearly = (
+        df.groupby([GOV_COL, YEAR_COL])
+        .size()
+        .reset_index(name="article_count")
+        .sort_values([GOV_COL, YEAR_COL])
+    )
+    yearly.to_csv(OUTPUT_DIR / "sample_article_counts_by_year.csv", index=False, encoding="utf-8-sig")
+
+    moon_period = df[df[GOV_COL] == MOON].copy()
+    moon_period["covid_period"] = np.where(
+        moon_period[YEAR_COL].between(2017, 2019),
+        "pre_covid_2017_2019",
+        "covid_period_2020_2022",
+    )
+    (
+        moon_period.groupby(["covid_period", YEAR_COL])
+        .size()
+        .reset_index(name="article_count")
+        .sort_values(["covid_period", YEAR_COL])
+        .to_csv(OUTPUT_DIR / "moon_covid_period_article_counts.csv", index=False, encoding="utf-8-sig")
+    )
+
+    metadata = {
+        "data_path": str(DATA_PATH),
+        "output_dir": str(OUTPUT_DIR),
+        "random_seed": RANDOM_SEED,
+        "conditions": [
+            {
+                "name": condition.name,
+                "description": condition.description,
+                "stopword_count": len(condition.stopwords),
+            }
+            for condition in conditions
+        ],
+        "tfidf": {
+            "max_features": TFIDF_MAX_FEATURES,
+            "min_df": TFIDF_MIN_DF,
+            "max_df": TFIDF_MAX_DF,
+            "tokenizer": "str.split",
+            "park_corpus_fit_moon_corpus_transform": True,
+        },
+        "log_odds": {
+            "prior": "combined corpus informative Dirichlet prior",
+            "min_total_count": LOG_ODDS_MIN_COUNT,
+            "positive_direction": MOON,
+        },
+        "lda": {
+            "num_topics": LDA_NUM_TOPICS,
+            "passes": LDA_PASSES,
+            "iterations": LDA_ITERATIONS,
+            "random_state": RANDOM_SEED,
+            "implementation": "gensim.models.LdaModel",
+            "workers": 1,
+            "primary_comparison": "same-topic-space inference after COVID token removal",
+        },
+    }
+    with open(OUTPUT_DIR / "reproducibility_metadata.json", "w", encoding="utf-8") as f:
+        json.dump(metadata, f, ensure_ascii=False, indent=2)
+
+
+def main() -> None:
+    print("[1/6] Loading data and stopword conditions...")
+    df = load_data()
+    conditions = build_conditions()
+    base_stopwords = conditions[0].stopwords
+
+    covid_audit = audit_covid_tokens(base_stopwords)
+    covid_audit.to_csv(OUTPUT_DIR / "covid_token_stopword_audit.csv", index=False, encoding="utf-8-sig")
+
+    print("[2/6] Running TF-IDF robustness...")
+    tfidf_outputs = {
+        condition.name: compute_tfidf_change(df, condition) for condition in conditions
+    }
+    for name, table in tfidf_outputs.items():
+        table.to_csv(OUTPUT_DIR / f"tfidf_{name}.csv", index=False, encoding="utf-8-sig")
+    tfidf_comparison = compare_keyword_tables(
+        tfidf_outputs["original_base"],
+        tfidf_outputs["covid_filtered"],
+        score_col="importance",
+        top_n=TFIDF_TOP_N,
+    )
+    tfidf_comparison.to_csv(
+        OUTPUT_DIR / "tfidf_original_vs_covid_filtered_top100.csv",
+        index=False,
+        encoding="utf-8-sig",
+    )
+
+    print("[3/6] Running log-odds robustness...")
+    log_outputs = {condition.name: compute_log_odds(df, condition) for condition in conditions}
+    for name, table in log_outputs.items():
+        table.to_csv(OUTPUT_DIR / f"log_odds_{name}.csv", index=False, encoding="utf-8-sig")
+    log_comparison = compare_log_odds(
+        log_outputs["original_base"], log_outputs["covid_filtered"], top_n=TFIDF_TOP_N
+    )
+    log_comparison.to_csv(
+        OUTPUT_DIR / "log_odds_original_vs_covid_filtered_top100.csv",
+        index=False,
+        encoding="utf-8-sig",
+    )
+
+    print("[4/6] Running LDA robustness...")
+    lda_outputs = run_lda_robustness(df, conditions)
+    for name, table in lda_outputs.items():
+        table.to_csv(OUTPUT_DIR / f"{name}.csv", index=False, encoding="utf-8-sig")
+
+    print("[5/6] Saving appendix workbook and reproducibility metadata...")
+    stability_summary = summarize_stability(
+        tfidf_comparison,
+        log_comparison,
+        lda_outputs["lda_gap_comparison"],
+    )
+    stability_summary.to_csv(
+        OUTPUT_DIR / "robustness_stability_summary.csv", index=False, encoding="utf-8-sig"
+    )
+    save_metadata(df, conditions)
+
+    save_excel(
+        {
+            "summary": stability_summary,
+            "covid_token_audit": covid_audit,
+            "tfidf_compare": tfidf_comparison,
+            "log_odds_compare": log_comparison,
+            "lda_gap_compare": lda_outputs["lda_gap_comparison"],
+            "lda_coherence": lda_outputs["lda_coherence"],
+        },
+        OUTPUT_DIR / "appendix_covid_filtered_robustness.xlsx",
+    )
+
+    print("[6/6] Complete.")
+    print(f"Results saved to: {OUTPUT_DIR}")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,3 @@
+﻿condition,model,coherence_type,coherence
+original_base,original_topic_space,c_v,0.543875
+covid_filtered,retrained_filtered_topic_space,c_v,0.532717

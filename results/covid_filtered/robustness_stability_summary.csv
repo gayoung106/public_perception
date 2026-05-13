@@ -1,0 +1,6 @@
+﻿method,comparison,stability_metric,value
+TF-IDF,top 100 original vs covid-filtered,top_keyword_retention_rate,1.0
+Log-odds,top 100 by |z| original vs covid-filtered,top_keyword_retention_rate,0.9
+Log-odds,retained top keywords,direction_stability_rate,1.0
+LDA,same-topic-space government gap,mean_abs_topic_gap_change,0.001973
+LDA,same-topic-space government gap,max_abs_topic_gap_change,0.009868
